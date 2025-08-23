@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Unsubscribe...</title>
+  <script>
+    // Берём все параметры из URL
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("email");
+
+    if (email) {
+      // Редирект на Apps Script, сохраняя email
+      window.location.href = "https://script.google.com/macros/s/AKfycbzPNGVhTXwlRBM0WTRCucU3W4bNhwFsv8u7U8f0uWsX0uONYjKBq_fN0085Q9uDb1h0kA/exec?email=" 
+        + encodeURIComponent(email);
+    } else {
+      document.write("<h1>Email hasn't received</h1>");
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>
