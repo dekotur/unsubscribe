@@ -1,23 +1,240 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Unsubscribe...</title>
-  <script>
-    // Берём все параметры из URL
-    const params = new URLSearchParams(window.location.search);
-    const email = params.get("email");
-
-    if (email) {
-      // Редирект на Apps Script, сохраняя email
-      window.location.href = "https://script.google.com/macros/s/AKfycbxSbiIOZeM4vEfta_oete6Hzy5ijdY0YUarxCQATm_RKaAvCCzGNuWWK05_eLKmz230/exec?email=" 
-        + encodeURIComponent(email);
-    } else {
-      document.write("<h1>Email hasn't received</h1>");
-    }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscribe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s;
+            background: #fafbfc;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #0066ff;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #0052cc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+        }
+        
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .message.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .message.show {
+            display: block;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #0066ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .form.hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <p>Redirecting...</p>
+    <div class="container">
+        <div class="message" id="message"></div>
+        
+        <div class="form" id="formContainer">
+            <h1>Unsubscribe</h1>
+            <p class="subtitle">Enter your email address to unsubscribe from our mailing list</p>
+            
+            <form id="unsubscribeForm">
+                <div class="form-group">
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="example@domain.com" 
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                <button type="submit" id="submitBtn">Unsubscribe</button>
+            </form>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 16px; color: #64748b;">Processing your request...</p>
+        </div>
+    </div>
+
+    <script>
+        // ВАЖНО: Замените этот URL на ваш URL из Google Apps Script
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSbiIOZeM4vEfta_oete6Hzy5ijdY0YUarxCQATm_RKaAvCCzGNuWWK05_eLKmz230/exec';
+        
+        // Получаем email из URL параметров, если есть
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailParam = urlParams.get('email');
+        
+        if (emailParam) {
+            document.getElementById('email').value = emailParam;
+        }
+        
+        // Обработка отправки формы
+        document.getElementById('unsubscribeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const formContainer = document.getElementById('formContainer');
+            const loading = document.getElementById('loading');
+            const messageEl = document.getElementById('message');
+            
+            // Валидация email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+            if (!emailRegex.test(email)) {
+                showMessage('Please enter a valid email address', 'error');
+                return;
+            }
+            
+            // Показываем загрузку
+            formContainer.classList.add('hidden');
+            loading.style.display = 'block';
+            messageEl.classList.remove('show');
+            
+            try {
+                // Отправляем запрос
+                const response = await fetch(SCRIPT_URL + '?email=' + encodeURIComponent(email), {
+                    method: 'GET',
+                    mode: 'no-cors' // Важно для Google Apps Script
+                });
+                
+                // Так как mode: 'no-cors', мы не можем прочитать ответ
+                // Поэтому просто показываем успех
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    showMessage('You have been successfully unsubscribed from our mailing list.', 'success');
+                }, 1000);
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                formContainer.classList.remove('hidden');
+                showMessage('An error occurred. Please try again later.', 'error');
+            }
+        });
+        
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = 'message ' + type + ' show';
+            
+            if (type === 'error') {
+                setTimeout(() => {
+                    messageEl.classList.remove('show');
+                }, 5000);
+            }
+        }
+    </script>
 </body>
 </html>
